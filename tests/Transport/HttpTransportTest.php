@@ -35,7 +35,7 @@ final class HttpTransportTest extends TestCase
     /**
      * @group legacy
      *
-     * @expectedDeprecationMessage Delaying the sending of the events using the "Sentry\Transport\HttpTransport" class is deprecated since version 2.2 and will not work in 3.0.
+     * @expectedDeprecation Delaying the sending of the events using the "Sentry\Transport\HttpTransport" class is deprecated since version 2.2 and will not work in 3.0.
      */
     public function testSendDelaysExecutionUntilShutdown(): void
     {

@@ -83,12 +83,14 @@ final class EventFactory implements EventFactoryInterface
             throw new EventCreationException($exception);
         }
 
-        $event->setSdkIdentifier($this->sdkIdentifier);
-        $event->setSdkVersion($this->sdkVersion);
         $event->setServerName($this->options->getServerName());
         $event->setRelease($this->options->getRelease());
         $event->getTagsContext()->merge($this->options->getTags());
         $event->setEnvironment($this->options->getEnvironment());
+        $event->setSdkInfo(new SdkInfo(
+            $this->sdkIdentifier,
+            $this->sdkVersion
+        ));
 
         if (isset($payload['logger'])) {
             $event->setLogger($payload['logger']);

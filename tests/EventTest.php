@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Jean85\PrettyVersions;
 use PHPUnit\Framework\TestCase;
 use Sentry\Breadcrumb;
-use Sentry\Client;
 use Sentry\Event;
+use Sentry\SdkInfo;
 use Sentry\Severity;
 use Sentry\Stacktrace;
 use Sentry\Util\PHPVersion;
@@ -25,12 +24,17 @@ final class EventTest extends TestCase
 
         $this->assertRegExp('/^[a-z0-9]{32}$/', $event1->getId());
         $this->assertRegExp('/^[a-z0-9]{32}$/', $event2->getId());
-        $this->assertNotEquals($event1->getId(), $event2->getId());
+        $this->assertNotSame($event1->getId(), $event2->getId());
     }
 
     public function testToArray(): void
     {
         $event = new Event();
+        $event->setSdkInfo(new SdkInfo(
+            'sentry.test',
+            '1.2.3',
+            ['foo', 'bar']
+        ));
 
         $expected = [
             'event_id' => $event->getId(),
@@ -38,8 +42,9 @@ final class EventTest extends TestCase
             'level' => 'error',
             'platform' => 'php',
             'sdk' => [
-                'name' => Client::SDK_IDENTIFIER,
-                'version' => PrettyVersions::getVersion('sentry/sentry')->getPrettyVersion(),
+                'name' => 'sentry.test',
+                'version' => '1.2.3',
+                'integrations' => ['foo', 'bar'],
             ],
             'contexts' => [
                 'os' => [
@@ -70,10 +75,6 @@ final class EventTest extends TestCase
             'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
             'level' => 'error',
             'platform' => 'php',
-            'sdk' => [
-                'name' => Client::SDK_IDENTIFIER,
-                'version' => PrettyVersions::getVersion('sentry/sentry')->getPrettyVersion(),
-            ],
             'contexts' => [
                 'os' => [
                     'name' => php_uname('s'),
@@ -241,8 +242,6 @@ final class EventTest extends TestCase
     public function gettersAndSettersDataProvider(): array
     {
         return [
-            ['sdkIdentifier', 'sentry.sdk.test-identifier', ['sdk' => ['name' => 'sentry.sdk.test-identifier']]],
-            ['sdkVersion', '1.2.3', ['sdk' => ['version' => '1.2.3']]],
             ['level', Severity::info(), ['level' => Severity::info()]],
             ['logger', 'ruby', ['logger' => 'ruby']],
             ['transaction', 'foo', ['transaction' => 'foo']],

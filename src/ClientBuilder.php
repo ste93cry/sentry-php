@@ -88,11 +88,15 @@ final class ClientBuilder implements ClientBuilderInterface
 
     /**
      * @var string The SDK identifier, to be used in {@see Event} and {@see SentryAuth}
+     *
+     * @deprecated since version 2.4, to be removed in 3.0
      */
     private $sdkIdentifier = Client::SDK_IDENTIFIER;
 
     /**
      * @var string The SDK version of the Client
+     *
+     * @deprecated since version 2.4, to be removed in 3.0
      */
     private $sdkVersion;
 
@@ -236,6 +240,8 @@ final class ClientBuilder implements ClientBuilderInterface
      */
     public function setSdkIdentifier(string $sdkIdentifier): ClientBuilderInterface
     {
+        @trigger_error(sprintf('The %s() method is deprecated since version 2.4 and will be removed in 3.0.', __METHOD__), E_USER_DEPRECATED);
+
         $this->sdkIdentifier = $sdkIdentifier;
 
         return $this;
@@ -246,6 +252,8 @@ final class ClientBuilder implements ClientBuilderInterface
      */
     public function setSdkVersion(string $sdkVersion): ClientBuilderInterface
     {
+        @trigger_error(sprintf('The %s() method is deprecated since version 2.4 and will be removed in 3.0.', __METHOD__), E_USER_DEPRECATED);
+
         $this->sdkVersion = $sdkVersion;
 
         return $this;

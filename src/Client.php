@@ -6,6 +6,8 @@ namespace Sentry;
 
 use GuzzleHttp\Promise\FulfilledPromise;
 use GuzzleHttp\Promise\PromiseInterface;
+use Jean85\PrettyVersions;
+use PackageVersions\Versions;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Sentry\Integration\Handler;
@@ -186,6 +188,8 @@ final class Client implements FlushableClientInterface
             return null;
         }
 
+        $this->addSdkInfoToEvent($event);
+
         if (null !== $scope) {
             $previousEvent = $event;
             $event = $scope->applyToEvent($event, $payload);
@@ -205,5 +209,21 @@ final class Client implements FlushableClientInterface
         }
 
         return $event;
+    }
+
+    /**
+     * Adds the information of the SDK to the event's data.
+     *
+     * @param Event $event The event
+     */
+    private function addSdkInfoToEvent(Event $event): void
+    {
+        $sdkInfo = $event->getSdkInfo();
+
+        $event->setSdkInfo(new SdkInfo(
+            null !== $sdkInfo ? $sdkInfo->getName() : self::SDK_IDENTIFIER,
+            null !== $sdkInfo ? $sdkInfo->getVersion() : PrettyVersions::getVersion(Versions::ROOT_PACKAGE_NAME)->getPrettyVersion(),
+            array_keys($this->integrations)
+        ));
     }
 }

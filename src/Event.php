@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sentry;
 
-use Jean85\PrettyVersions;
 use Sentry\Context\Context;
 use Sentry\Context\RuntimeContext;
 use Sentry\Context\ServerOsContext;
@@ -140,14 +139,9 @@ final class Event implements \JsonSerializable
     private $stacktrace;
 
     /**
-     * @var string The Sentry SDK identifier
+     * @var SdkInfo|null The information about the SDK
      */
-    private $sdkIdentifier = Client::SDK_IDENTIFIER;
-
-    /**
-     * @var string The Sentry SDK version
-     */
-    private $sdkVersion;
+    private $sdkInfo;
 
     /**
      * Event constructor.
@@ -165,7 +159,6 @@ final class Event implements \JsonSerializable
         $this->userContext = new UserContext();
         $this->extraContext = new Context();
         $this->tagsContext = new TagsContext();
-        $this->sdkVersion = PrettyVersions::getVersion('sentry/sentry')->getPrettyVersion();
     }
 
     /**
@@ -177,43 +170,21 @@ final class Event implements \JsonSerializable
     }
 
     /**
-     * Gets the identifier of the SDK package that generated this event.
-     *
-     * @internal
+     * Gets the information about the SDK that originated this event.
      */
-    public function getSdkIdentifier(): string
+    public function getSdkInfo(): ?SdkInfo
     {
-        return $this->sdkIdentifier;
+        return $this->sdkInfo;
     }
 
     /**
-     * Sets the identifier of the SDK package that generated this event.
+     * Sets the information about the SDK that originated this event.
      *
-     * @internal
+     * @param SdkInfo|null $sdkInfo The information about the SDK
      */
-    public function setSdkIdentifier(string $sdkIdentifier): void
+    public function setSdkInfo(?SdkInfo $sdkInfo): void
     {
-        $this->sdkIdentifier = $sdkIdentifier;
-    }
-
-    /**
-     * Gets the version of the SDK package that generated this Event.
-     *
-     * @internal
-     */
-    public function getSdkVersion(): string
-    {
-        return $this->sdkVersion;
-    }
-
-    /**
-     * Sets the version of the SDK package that generated this Event.
-     *
-     * @internal
-     */
-    public function setSdkVersion(string $sdkVersion): void
-    {
-        $this->sdkVersion = $sdkVersion;
+        $this->sdkInfo = $sdkInfo;
     }
 
     /**
@@ -567,9 +538,10 @@ final class Event implements \JsonSerializable
      *     timestamp: string,
      *     level: string,
      *     platform: string,
-     *     sdk: array{
+     *     sdk?: array{
      *         name: string,
-     *         version: string
+     *         version: string,
+     *         integrations: list<class-string<\Sentry\Integration\IntegrationInterface>>
      *     },
      *     logger?: string,
      *     transaction?: string,
@@ -609,11 +581,15 @@ final class Event implements \JsonSerializable
             'timestamp' => $this->timestamp,
             'level' => (string) $this->level,
             'platform' => 'php',
-            'sdk' => [
-                'name' => $this->sdkIdentifier,
-                'version' => $this->getSdkVersion(),
-            ],
         ];
+
+        if (null !== $this->sdkInfo) {
+            $data['sdk'] = [
+                'name' => $this->sdkInfo->getName(),
+                'version' => $this->sdkInfo->getVersion(),
+                'integrations' => $this->sdkInfo->getIntegrations(),
+            ];
+        }
 
         if (null !== $this->logger) {
             $data['logger'] = $this->logger;

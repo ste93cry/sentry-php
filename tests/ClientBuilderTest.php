@@ -11,6 +11,7 @@ use Http\Message\MessageFactory as MessageFactoryInterface;
 use Http\Promise\FulfilledPromise;
 use Http\Promise\Promise as PromiseInterface;
 use Jean85\PrettyVersions;
+use PackageVersions\Versions;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
@@ -31,11 +32,6 @@ use Sentry\Transport\TransportInterface;
 
 final class ClientBuilderTest extends TestCase
 {
-    /**
-     * @group legacy
-     *
-     * @expectedDeprecationMessage Delaying the sending of the events using the "Sentry\Transport\HttpTransport" class is deprecated since version 2.2 and will not work in 3.0.
-     */
     public function testHttpTransportIsUsedWhenServerIsConfigured(): void
     {
         $clientBuilder = ClientBuilder::create(['dsn' => 'http://public:secret@example.com/sentry/1']);
@@ -57,7 +53,7 @@ final class ClientBuilderTest extends TestCase
     /**
      * @group legacy
      *
-     * @expectedDeprecationMessage Delaying the sending of the events using the "Sentry\Transport\HttpTransport" class is deprecated since version 2.2 and will not work in 3.0.
+     * @expectedDeprecation Method Sentry\ClientBuilder::setMessageFactory() is deprecated since version 2.3 and will be removed in 3.0.
      */
     public function testSetMessageFactory(): void
     {
@@ -97,7 +93,7 @@ final class ClientBuilderTest extends TestCase
     /**
      * @group legacy
      *
-     * @expectedDeprecationMessage Delaying the sending of the events using the "Sentry\Transport\HttpTransport" class is deprecated since version 2.2 and will not work in 3.0.
+     * @expectedDeprecation Method Sentry\ClientBuilder::setHttpClient() is deprecated since version 2.3 and will be removed in 3.0.
      */
     public function testSetHttpClient(): void
     {
@@ -119,7 +115,7 @@ final class ClientBuilderTest extends TestCase
     /**
      * @group legacy
      *
-     * @expectedDeprecationMessage Method Sentry\ClientBuilder::addHttpClientPlugin() is deprecated since version 2.3 and will be removed in 3.0.
+     * @expectedDeprecation Method Sentry\ClientBuilder::addHttpClientPlugin() is deprecated since version 2.3 and will be removed in 3.0.
      */
     public function testAddHttpClientPlugin(): void
     {
@@ -230,23 +226,32 @@ final class ClientBuilderTest extends TestCase
     public function testClientBuilderFallbacksToDefaultSdkIdentifierAndVersion(): void
     {
         $callbackCalled = false;
-        $expectedVersion = PrettyVersions::getVersion('sentry/sentry')->getPrettyVersion();
 
         $options = new Options();
-        $options->setBeforeSendCallback(function (Event $event) use ($expectedVersion, &$callbackCalled) {
+        $options->setBeforeSendCallback(function (Event $event) use (&$callbackCalled) {
             $callbackCalled = true;
+            $sdkInfo = $event->getSdkInfo();
 
-            $this->assertSame(Client::SDK_IDENTIFIER, $event->getSdkIdentifier());
-            $this->assertSame($expectedVersion, $event->getSdkVersion());
+            $this->assertNotNull($sdkInfo);
+            $this->assertSame(Client::SDK_IDENTIFIER, $sdkInfo->getName());
+            $this->assertSame(PrettyVersions::getVersion(Versions::ROOT_PACKAGE_NAME)->getPrettyVersion(), $sdkInfo->getVersion());
 
             return null;
         });
 
-        (new ClientBuilder($options))->getClient()->captureMessage('test');
+        (new ClientBuilder($options))
+            ->getClient()
+            ->captureMessage('test');
 
         $this->assertTrue($callbackCalled, 'Callback not invoked, no assertions performed');
     }
 
+    /**
+     * @group legacy
+     *
+     * @expectedDeprecation The Sentry\ClientBuilder::setSdkIdentifier() method is deprecated since version 2.4 and will be removed in 3.0.
+     * @expectedDeprecation The Sentry\ClientBuilder::setSdkVersion() method is deprecated since version 2.4 and will be removed in 3.0.
+     */
     public function testClientBuilderSetsSdkIdentifierAndVersion(): void
     {
         $callbackCalled = false;
@@ -254,9 +259,11 @@ final class ClientBuilderTest extends TestCase
         $options = new Options();
         $options->setBeforeSendCallback(function (Event $event) use (&$callbackCalled) {
             $callbackCalled = true;
+            $sdkInfo = $event->getSdkInfo();
 
-            $this->assertSame('sentry.test', $event->getSdkIdentifier());
-            $this->assertSame('1.2.3-test', $event->getSdkVersion());
+            $this->assertNotNull($sdkInfo);
+            $this->assertSame('sentry.test', $sdkInfo->getName());
+            $this->assertSame('1.2.3-test', $sdkInfo->getVersion());
 
             return null;
         });

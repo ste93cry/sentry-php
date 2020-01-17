@@ -16,9 +16,6 @@ use Sentry\Stacktrace;
 
 class EventFactoryTest extends TestCase
 {
-    /**
-     * @backupGlobals
-     */
     public function testCreateEventWithDefaultValues(): void
     {
         $options = new Options();
@@ -36,9 +33,11 @@ class EventFactoryTest extends TestCase
         );
 
         $event = $eventFactory->create([]);
+        $sdkInfo = $event->getSdkInfo();
 
-        $this->assertSame('sentry.sdk.identifier', $event->getSdkIdentifier());
-        $this->assertSame('1.2.3', $event->getSdkVersion());
+        $this->assertNotNull($sdkInfo);
+        $this->assertSame('sentry.sdk.identifier', $sdkInfo->getName());
+        $this->assertSame('1.2.3', $sdkInfo->getVersion());
         $this->assertSame($options->getServerName(), $event->getServerName());
         $this->assertSame($options->getRelease(), $event->getRelease());
         $this->assertSame($options->getTags(), $event->getTagsContext()->toArray());

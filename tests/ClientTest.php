@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
+use Jean85\PrettyVersions;
+use PackageVersions\Versions;
 use PHPUnit\Framework\MockObject\Matcher\Invocation;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use Sentry\Client;
 use Sentry\ClientBuilder;
 use Sentry\Event;
+use Sentry\Integration\IntegrationInterface;
 use Sentry\Options;
 use Sentry\SentrySdk;
 use Sentry\Serializer\Serializer;
@@ -249,7 +253,8 @@ class ClientTest extends TestCase
         /** @var TransportInterface&MockObject $transport */
         $transport = $this->createMock(TransportInterface::class);
         $transport->expects($this->never())
-            ->method('send');
+            ->method('send')
+            ->willReturn(null);
 
         $client = ClientBuilder::create(['dsn' => 'http://public:secret@example.com/1'])
             ->setTransportFactory($this->createTransportFactory($transport))
@@ -257,7 +262,68 @@ class ClientTest extends TestCase
 
         $this->clearLastError();
 
-        $client->captureLastError();
+        $this->assertNull($client->captureLastError());
+    }
+
+    public function testCaptureEventAddsSdkInfoToEvent(): void
+    {
+        $integration1 = new class() implements IntegrationInterface {
+            public function setupOnce(): void
+            {
+            }
+        };
+
+        $integration2 = new class() implements IntegrationInterface {
+            public function setupOnce(): void
+            {
+            }
+        };
+
+        $options = [
+            'default_integrations' => false,
+            'integrations' => [
+                $integration1,
+                $integration2,
+            ],
+        ];
+
+        $expectedIntegrations = [
+            \get_class($integration1),
+            \get_class($integration2),
+        ];
+
+        /** @var TransportInterface&MockObject $transport */
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (Event $event) use ($expectedIntegrations): bool {
+                $sdkInfo = $event->getSdkInfo();
+
+                if (null === $sdkInfo) {
+                    return false;
+                }
+
+                if (Client::SDK_IDENTIFIER !== $sdkInfo->getName()) {
+                    return false;
+                }
+
+                if (PrettyVersions::getVersion(Versions::ROOT_PACKAGE_NAME)->getPrettyVersion() !== $sdkInfo->getVersion()) {
+                    return false;
+                }
+
+                if ($expectedIntegrations !== $sdkInfo->getIntegrations()) {
+                    return false;
+                }
+
+                return true;
+            }))
+            ->willReturn('27ba032c56f945f18f356132b2195bcb');
+
+        $client = ClientBuilder::create($options)
+            ->setTransportFactory($this->createTransportFactory($transport))
+            ->getClient();
+
+        $this->assertSame('27ba032c56f945f18f356132b2195bcb', $client->captureEvent([]));
     }
 
     /**

@@ -137,6 +137,8 @@ interface ClientBuilderInterface
      * @return $this
      *
      * @internal
+     *
+     * @deprecated since version 2.4, to be removed in 3.0
      */
     public function setSdkIdentifier(string $sdkIdentifier): self;
 
@@ -148,6 +150,8 @@ interface ClientBuilderInterface
      * @return $this
      *
      * @internal
+     *
+     * @deprecated since version 2.4, to be removed in 3.0
      */
     public function setSdkVersion(string $sdkVersion): self;
 }
