@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Sentry\Integration\ErrorListenerIntegration;
 use Sentry\Integration\ExceptionListenerIntegration;
 use Sentry\Integration\FatalErrorListenerIntegration;
+use Sentry\Integration\FrameContextifierIntegration;
 use Sentry\Integration\IntegrationInterface;
 use Sentry\Integration\RequestIntegration;
 use Sentry\Integration\TransactionIntegration;
@@ -379,6 +380,7 @@ final class OptionsTest extends TestCase
                 new FatalErrorListenerIntegration(),
                 new RequestIntegration(),
                 new TransactionIntegration(),
+                new FrameContextifierIntegration(['context_lines' => 5]),
                 $integration,
             ],
         ];
@@ -433,6 +435,7 @@ final class OptionsTest extends TestCase
                 new FatalErrorListenerIntegration(),
                 new RequestIntegration(),
                 new TransactionIntegration(),
+                new FrameContextifierIntegration(['context_lines' => 5]),
             ],
         ];
     }

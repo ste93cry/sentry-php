@@ -20,6 +20,7 @@ use Sentry\Event;
 use Sentry\Integration\ErrorListenerIntegration;
 use Sentry\Integration\ExceptionListenerIntegration;
 use Sentry\Integration\FatalErrorListenerIntegration;
+use Sentry\Integration\FrameContextifierIntegration;
 use Sentry\Integration\IntegrationInterface;
 use Sentry\Integration\RequestIntegration;
 use Sentry\Integration\TransactionIntegration;
@@ -224,6 +225,7 @@ final class ClientBuilderTest extends TestCase
                     ExceptionListenerIntegration::class,
                     RequestIntegration::class,
                     TransactionIntegration::class,
+                    FrameContextifierIntegration::class,
                 ],
             ],
             [
@@ -235,6 +237,7 @@ final class ClientBuilderTest extends TestCase
                     ExceptionListenerIntegration::class,
                     RequestIntegration::class,
                     TransactionIntegration::class,
+                    FrameContextifierIntegration::class,
                     StubIntegration::class,
                 ],
             ],

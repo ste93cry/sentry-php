@@ -7,6 +7,7 @@ namespace Sentry;
 use Sentry\Integration\ErrorListenerIntegration;
 use Sentry\Integration\ExceptionListenerIntegration;
 use Sentry\Integration\FatalErrorListenerIntegration;
+use Sentry\Integration\FrameContextifierIntegration;
 use Sentry\Integration\IntegrationInterface;
 use Sentry\Integration\RequestIntegration;
 use Sentry\Integration\TransactionIntegration;
@@ -161,20 +162,24 @@ final class Options
     }
 
     /**
-     * Gets the number of lines of code context to capture, or null if none.
+     * Gets the number of lines of code context to capture.
      */
     public function getContextLines(): int
     {
+        @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "FrameContextifierIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
+
         return $this->options['context_lines'];
     }
 
     /**
-     * Sets the number of lines of code context to capture, or null if none.
+     * Sets the number of lines of code context to capture.
      *
      * @param int $contextLines The number of lines of code
      */
     public function setContextLines(int $contextLines): void
     {
+        @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "FrameContextifierIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
+
         $options = array_merge($this->options, ['context_lines' => $contextLines]);
 
         $this->options = $this->resolver->resolve($options);
@@ -1045,7 +1050,11 @@ final class Options
     private function getDefaultIntegrations(): array
     {
         if (!$this->options['default_integrations']) {
-            return [];
+            // Forcefully return the FrameContextifierIntegration integration
+            // to avoid breaking applications that were relying on the
+            return [
+                new FrameContextifierIntegration(),
+            ];
         }
 
         if (null === $this->defaultIntegrations) {
@@ -1055,6 +1064,7 @@ final class Options
                 new FatalErrorListenerIntegration(),
                 new RequestIntegration(),
                 new TransactionIntegration(),
+                new FrameContextifierIntegration(),
             ];
         }
 

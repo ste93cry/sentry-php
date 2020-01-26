@@ -518,7 +518,13 @@ final class Event implements \JsonSerializable
     }
 
     /**
-     * Gets the exception.
+     * Gets the exceptions.
+     *
+     * @psalm-return list<array{
+     *     type: class-string,
+     *     value: string,
+     *     stacktrace: Stacktrace
+     * }>
      */
     public function getExceptions(): array
     {
@@ -526,11 +532,11 @@ final class Event implements \JsonSerializable
     }
 
     /**
-     * Sets the exception.
+     * Sets the exceptions.
      *
-     * @param array<int, array<string, mixed>> $exceptions The exception
+     * @param array<int, array<string, mixed>> $exceptions The exceptions
      *
-     * @psalm-param array<int, array{
+     * @psalm-param list<array{
      *     type: class-string,
      *     value: string,
      *     stacktrace: Stacktrace

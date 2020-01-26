@@ -14,7 +14,7 @@ use Sentry\Serializer\SerializerInterface;
 final class EventFactory implements EventFactoryInterface
 {
     /**
-     * @var SerializerInterface The serializer
+     * @var SerializerInterface|null The serializer
      */
     private $serializer;
 
@@ -41,14 +41,18 @@ final class EventFactory implements EventFactoryInterface
     /**
      * EventFactory constructor.
      *
-     * @param SerializerInterface               $serializer               The serializer
+     * @param SerializerInterface|null          $serializer               The serializer
      * @param RepresentationSerializerInterface $representationSerializer The serializer for function arguments
      * @param Options                           $options                  The SDK configuration options
      * @param string                            $sdkIdentifier            The Sentry SDK identifier
      * @param string                            $sdkVersion               The Sentry SDK version
      */
-    public function __construct(SerializerInterface $serializer, RepresentationSerializerInterface $representationSerializer, Options $options, string $sdkIdentifier, string $sdkVersion)
+    public function __construct(?SerializerInterface $serializer, RepresentationSerializerInterface $representationSerializer, Options $options, string $sdkIdentifier, string $sdkVersion)
     {
+        if (null !== $serializer) {
+            @trigger_error(sprintf('The $serializer argument of the "%s" class is deprecated since version 2.4 and will be removed in 3.0.', self::class), E_USER_DEPRECATED);
+        }
+
         $this->serializer = $serializer;
         $this->representationSerializer = $representationSerializer;
         $this->options = $options;
@@ -64,7 +68,14 @@ final class EventFactory implements EventFactoryInterface
         $event = $this->create($payload);
 
         if (!$event->getStacktrace()) {
-            $stacktrace = Stacktrace::createFromBacktrace($this->options, $this->serializer, $this->representationSerializer, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), __FILE__, __LINE__);
+            $stacktrace = Stacktrace::createFromBacktrace(
+                $this->options,
+                $this->serializer,
+                $this->representationSerializer,
+                debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS),
+                __FILE__,
+                __LINE__ - 6
+            );
 
             $event->setStacktrace($stacktrace);
         }
