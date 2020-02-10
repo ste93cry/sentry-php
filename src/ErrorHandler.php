@@ -434,6 +434,8 @@ final class ErrorHandler
         try {
             if (null !== $previousExceptionHandler) {
                 $previousExceptionHandler($exception);
+
+                return;
             }
         } catch (\Throwable $previousExceptionHandlerException) {
             // Do nothing, we just need to set the $previousExceptionHandlerException
@@ -451,7 +453,9 @@ final class ErrorHandler
             throw $exception;
         }
 
-        $this->handleException($previousExceptionHandlerException);
+        if ($exception !== $previousExceptionHandlerException) {
+            $this->handleException($previousExceptionHandlerException);
+        }
     }
 
     /**

@@ -23,7 +23,7 @@ while (!file_exists($vendor . '/vendor')) {
 require $vendor . '/vendor/autoload.php';
 
 set_exception_handler(static function (\Exception $exception): void {
-    echo 'Custom exception handler called';
+    echo 'Custom exception handler called' . PHP_EOL;
 
     throw $exception;
 });
@@ -34,7 +34,7 @@ $transportFactory = new class implements TransportFactoryInterface {
         return new class implements TransportInterface {
             public function send(Event $event): ?string
             {
-                echo 'Transport called' . PHP_EOL;
+                echo 'Transport called: ' . $event->toArray()['exception']['values'][0]['value'] . PHP_EOL;
 
                 return null;
             }
@@ -51,8 +51,10 @@ SentrySdk::getCurrentHub()->bindClient($client);
 throw new \Exception('foo bar');
 ?>
 --EXPECTF--
-Transport called
+Transport called: foo bar
 Custom exception handler called
+
 Fatal error: Uncaught Exception: foo bar in %s:%d
 Stack trace:
-%a
+#0 {main}
+  thrown in %s on line %d
