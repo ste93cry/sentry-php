@@ -33,5 +33,5 @@ Custom exception handler called
 
 Fatal error: Uncaught Exception: foo bar in %s:%d
 Stack trace:
-#0 {main}
+#0%a
   thrown in %s on line %d
