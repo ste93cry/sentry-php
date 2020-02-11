@@ -3,6 +3,7 @@
 namespace Sentry\Tests\Transport;
 
 use Sentry\ClientBuilder;
+use Sentry\ClientInterface;
 use Sentry\Event;
 use Sentry\Options;
 use Sentry\SentrySdk;
@@ -23,12 +24,16 @@ class StubTransportFactory implements TransportFactoryInterface
         };
     }
 
-    public static function registerClientWithStubTransport(): void
+    public static function registerClientWithStubTransport(array $options = []): ClientInterface
     {
-        $client = (new ClientBuilder(new Options(['dsn' => 'http://public@example.com/'])))
+        $options['dsn'] = 'http://public@example.com/';
+
+        $client = (new ClientBuilder(new Options($options)))
             ->setTransportFactory(new self())
             ->getClient();
 
         SentrySdk::getCurrentHub()->bindClient($client);
+
+        return $client;
     }
 }

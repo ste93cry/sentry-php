@@ -7,12 +7,7 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Sentry\ClientBuilder;
-use Sentry\Event;
-use Sentry\Options;
-use Sentry\SentrySdk;
-use Sentry\Transport\TransportFactoryInterface;
-use Sentry\Transport\TransportInterface;
+use Sentry\Tests\Transport\StubTransportFactory;
 
 $vendor = __DIR__;
 
@@ -22,25 +17,7 @@ while (!file_exists($vendor . '/vendor')) {
 
 require $vendor . '/vendor/autoload.php';
 
-$transportFactory = new class implements TransportFactoryInterface {
-    public function create(Options $options): TransportInterface
-    {
-        return new class implements TransportInterface {
-            public function send(Event $event): ?string
-            {
-                echo 'Transport called' . PHP_EOL;
-
-                return null;
-            }
-        };
-    }
-};
-
-$client = ClientBuilder::create(['capture_silenced_errors' => true])
-    ->setTransportFactory($transportFactory)
-    ->getClient();
-
-SentrySdk::getCurrentHub()->bindClient($client);
+$client = StubTransportFactory::registerClientWithStubTransport(['capture_silenced_errors' => true]);
 
 echo 'Triggering silenced error' . PHP_EOL;
 
@@ -54,5 +31,5 @@ echo 'Triggering silenced error' . PHP_EOL;
 ?>
 --EXPECT--
 Triggering silenced error
-Transport called
+Event sent: Notice: Undefined variable: a
 Triggering silenced error

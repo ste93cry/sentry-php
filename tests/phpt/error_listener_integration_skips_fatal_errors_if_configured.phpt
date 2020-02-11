@@ -7,13 +7,8 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Sentry\ClientBuilder;
-use Sentry\Event;
 use Sentry\Integration\ErrorListenerIntegration;
-use Sentry\Options;
-use Sentry\SentrySdk;
-use Sentry\Transport\TransportFactoryInterface;
-use Sentry\Transport\TransportInterface;
+use Sentry\Tests\Transport\StubTransportFactory;
 
 $vendor = __DIR__;
 
@@ -23,32 +18,12 @@ while (!file_exists($vendor . '/vendor')) {
 
 require $vendor . '/vendor/autoload.php';
 
-$transportFactory = new class implements TransportFactoryInterface {
-    public function create(Options $options): TransportInterface
-    {
-        return new class implements TransportInterface {
-            public function send(Event $event): ?string
-            {
-                echo 'Transport called' . PHP_EOL;
-
-                return null;
-            }
-        };
-    }
-};
-
-$options = new Options([
+StubTransportFactory::registerClientWithStubTransport([
     'default_integrations' => false,
     'integrations' => [
         new ErrorListenerIntegration(null, false),
     ],
 ]);
-
-$client = (new ClientBuilder($options))
-    ->setTransportFactory($transportFactory)
-    ->getClient();
-
-SentrySdk::getCurrentHub()->bindClient($client);
 
 class FooClass implements \Serializable
 {
