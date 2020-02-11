@@ -417,7 +417,8 @@ final class ErrorHandler
             self::$lastCapturedException
             && self::$lastCapturedException->getFile() === $error['file']
             && self::$lastCapturedException->getLine() === $error['line']
-            && 0 === strpos($error['message'], 'Uncaught Exception: ' . self::$lastCapturedException->getMessage())
+            && false !== strpos($error['message'], 'Uncaught ')
+            && false !== strpos($error['message'], self::$lastCapturedException->getMessage())
         ) {
             return;
         }
