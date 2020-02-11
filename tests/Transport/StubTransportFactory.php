@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sentry\Tests\Transport;
 
 use Sentry\ClientBuilder;
@@ -14,7 +16,7 @@ class StubTransportFactory implements TransportFactoryInterface
 {
     public function create(Options $options): TransportInterface
     {
-        return new class implements TransportInterface {
+        return new class() implements TransportInterface {
             public function send(Event $event): ?string
             {
                 echo 'Event sent: ' . $event->getExceptions()[0]['value'] . PHP_EOL;

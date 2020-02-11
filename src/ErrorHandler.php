@@ -30,7 +30,7 @@ final class ErrorHandler
     private static $handlerInstance;
 
     /**
-     * This property is used to avoid double-reporting uncaught exceptions
+     * This property is used to avoid double-reporting uncaught exceptions.
      *
      * @var \Throwable|null The last exception captured by the exception handler
      */
