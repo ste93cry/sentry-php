@@ -472,9 +472,7 @@ final class ErrorHandler
             throw $exception;
         }
 
-        if ($exception !== $previousExceptionHandlerException) {
-            $this->handleException($previousExceptionHandlerException);
-        }
+        $this->handleException($previousExceptionHandlerException);
     }
 
     /**
