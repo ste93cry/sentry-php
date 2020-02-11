@@ -58,12 +58,12 @@ Event sent: foo bar
 Sentry handler rethrowed
 Throwing a new exception from the custom exception handler
 
-Fatal error: Uncaught RuntimeException: Secondary exception thrown in Standard input code:%d
+Fatal error: Uncaught RuntimeException: Secondary exception thrown in %s:%d
 Stack trace:
 #0 [internal function]: class@anonymous->handle(Object(Exception))
 #1 {main}
-  thrown in Standard input code on line %d
-Event sent: Error: Uncaught RuntimeException: Secondary exception thrown in Standard input code:%d
+  thrown in %s on line %d
+Event sent: Error: Uncaught RuntimeException: Secondary exception thrown in %s:%d
 Stack trace:
 #0 [internal function]: class@anonymous->handle(Object(Exception))
 #1 {main}
