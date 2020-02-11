@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Sentry\ErrorHandler;
+use Sentry\Tests\Transport\StubTransportFactory;
 
 $vendor = __DIR__;
 
@@ -17,17 +17,7 @@ while (!file_exists($vendor . '/vendor')) {
 
 require $vendor . '/vendor/autoload.php';
 
-ErrorHandler::addExceptionListener(static function (\Throwable $error): void {
-    echo 'Sentry exception listener called: ' . $error->getMessage() . PHP_EOL;
-});
-
-ErrorHandler::addErrorListener(static function (\Throwable $error): void {
-    echo 'Sentry error listener called: ' . $error->getMessage() . PHP_EOL;
-});
-
-ErrorHandler::addFatalErrorListener(static function (\Throwable $error): void {
-    echo 'Sentry fatal error listener called: ' . $error->getMessage() . PHP_EOL;
-});
+StubTransportFactory::registerClientWithStubTransport();
 
 $otherHandler = new class() {
     /** @var callable */
@@ -62,16 +52,19 @@ $otherHandler->previousHandler = set_exception_handler([$otherHandler, 'handle']
 throw new \Exception('foo bar');
 ?>
 --EXPECTF--
-Sentry error listener called: User Deprecated%s
 Custom exception handler called
 Calling Sentry exception handler...
-Sentry exception listener called: foo bar
+Event sent: foo bar
 Sentry handler rethrowed
 Throwing a new exception from the custom exception handler
-Sentry fatal error listener called: Secondary exception thrown
 
 Fatal error: Uncaught RuntimeException: Secondary exception thrown in Standard input code:%d
 Stack trace:
 #0 [internal function]: class@anonymous->handle(Object(Exception))
 #1 {main}
   thrown in Standard input code on line %d
+Event sent: Error: Uncaught RuntimeException: Secondary exception thrown in Standard input code:%d
+Stack trace:
+#0 [internal function]: class@anonymous->handle(Object(Exception))
+#1 {main}
+  thrown

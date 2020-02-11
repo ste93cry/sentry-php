@@ -7,12 +7,7 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Sentry\ClientBuilder;
-use Sentry\Event;
-use Sentry\Options;
-use Sentry\SentrySdk;
-use Sentry\Transport\TransportFactoryInterface;
-use Sentry\Transport\TransportInterface;
+use Sentry\Tests\Transport\StubTransportFactory;
 
 $vendor = __DIR__;
 
@@ -28,30 +23,12 @@ set_exception_handler(static function (\Exception $exception): void {
     throw $exception;
 });
 
-$transportFactory = new class implements TransportFactoryInterface {
-    public function create(Options $options): TransportInterface
-    {
-        return new class implements TransportInterface {
-            public function send(Event $event): ?string
-            {
-                echo 'Transport called: ' . $event->toArray()['exception']['values'][0]['value'] . PHP_EOL;
-
-                return null;
-            }
-        };
-    }
-};
-
-$client = ClientBuilder::create([])
-    ->setTransportFactory($transportFactory)
-    ->getClient();
-
-SentrySdk::getCurrentHub()->bindClient($client);
+StubTransportFactory::registerClientWithStubTransport();
 
 throw new \Exception('foo bar');
 ?>
 --EXPECTF--
-Transport called: foo bar
+Event sent: foo bar
 Custom exception handler called
 
 Fatal error: Uncaught Exception: foo bar in %s:%d

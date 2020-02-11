@@ -30,6 +30,13 @@ final class ErrorHandler
     private static $handlerInstance;
 
     /**
+     * This property is used to avoid double-reporting uncaught exceptions
+     *
+     * @var \Throwable|null The last exception captured by the exception handler
+     */
+    private static $lastCapturedException;
+
+    /**
      * @var callable[] List of listeners that will act on each captured error
      *
      * @psalm-var (callable(\ErrorException): void)[]
@@ -402,7 +409,20 @@ final class ErrorHandler
             $error = error_get_last();
         }
 
-        if (!empty($error) && $error['type'] & (E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING)) {
+        if (empty($error)) {
+            return;
+        }
+
+        if (
+            self::$lastCapturedException
+            && self::$lastCapturedException->getFile() === $error['file']
+            && self::$lastCapturedException->getLine() === $error['line']
+            && 0 === strpos($error['message'], 'Uncaught Exception: ' . self::$lastCapturedException->getMessage())
+        ) {
+            return;
+        }
+
+        if ($error['type'] & (E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING)) {
             $errorAsException = new FatalErrorException(self::ERROR_LEVELS_DESCRIPTION[$error['type']] . ': ' . $error['message'], 0, $error['type'], $error['file'], $error['line']);
 
             $this->exceptionReflection->setValue($errorAsException, []);
@@ -423,6 +443,7 @@ final class ErrorHandler
     private function handleException(\Throwable $exception): void
     {
         $this->invokeListeners($this->exceptionListeners, $exception);
+        self::$lastCapturedException = $exception;
 
         $previousExceptionHandlerException = $exception;
 
@@ -447,9 +468,6 @@ final class ErrorHandler
         // the previous exception handler, if any, give it back to the native
         // PHP handler to prevent infinite circular loop
         if ($exception === $previousExceptionHandlerException) {
-            // Disable the fatal error handler or the error will be reported twice
-            self::$reservedMemory = null;
-
             throw $exception;
         }
 
