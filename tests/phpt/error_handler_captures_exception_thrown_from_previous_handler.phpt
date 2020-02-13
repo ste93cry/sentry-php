@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Sentry\Tests\Transport\StubTransportFactory;
+use Sentry\ErrorHandler;
 
 $vendor = __DIR__;
 
@@ -23,14 +23,17 @@ set_exception_handler(static function (): void {
     throw new \Exception('foo bar baz');
 });
 
-StubTransportFactory::registerClientWithStubTransport();
+$errorHandler = ErrorHandler::registerOnceExceptionHandler();
+$errorHandler->addExceptionHandlerListener(static function (): void {
+    echo 'Exception listener called' . PHP_EOL;
+});
 
 throw new \Exception('foo bar');
 ?>
 --EXPECTF--
-Event sent: foo bar
+Exception listener called
 Custom exception handler called
-Event sent: foo bar baz
+Exception listener called
 
 Fatal error: Uncaught Exception: foo bar baz in %s:%d
 Stack trace:

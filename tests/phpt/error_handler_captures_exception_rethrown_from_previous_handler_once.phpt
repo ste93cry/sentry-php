@@ -1,5 +1,5 @@
 --TEST--
-Test that a thrown exception is captured only once if rethrown from a previous exception handler
+Test that the exception being handled is captured only once even if it's rethrown from a previous exception handler
 --FILE--
 <?php
 
@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Sentry\Tests\Transport\StubTransportFactory;
+use Sentry\ErrorHandler;
 
 $vendor = __DIR__;
 
@@ -17,21 +17,23 @@ while (!file_exists($vendor . '/vendor')) {
 
 require $vendor . '/vendor/autoload.php';
 
-set_exception_handler(static function (\Exception $exception): void {
+set_exception_handler(static function (\Throwable $exception): void {
     echo 'Custom exception handler called' . PHP_EOL;
 
     throw $exception;
 });
 
-StubTransportFactory::registerClientWithStubTransport();
+$errorHandler = ErrorHandler::registerOnceExceptionHandler();
+$errorHandler->addExceptionHandlerListener(static function (): void {
+    echo 'Exception listener called' . PHP_EOL;
+});
 
 throw new \Exception('foo bar');
 ?>
 --EXPECTF--
-Event sent: foo bar
+Exception listener called
 Custom exception handler called
 
 Fatal error: Uncaught Exception: foo bar in %s:%d
 Stack trace:
-#0%a
-  thrown in %s on line %d
+%a
