@@ -9,11 +9,9 @@ use Sentry\Exception\SilencedErrorException;
 
 /**
  * This class implements a simple error handler that catches all configured
- * error types and logs them using a certain Raven client. Registering more
- * than once this error handler is not supported and will lead to nasty problems.
- * The code is based on the Symfony Debug component.
- *
- * @author Stefano Arlandini <sarlandini@alice.it>
+ * error types and logs them using a certain client. Registering more than
+ * once this error handler is not supported and will lead to nasty problems.
+ * The code is based on the Symfony ErrorHandler component.
  */
 final class ErrorHandler
 {
@@ -70,6 +68,8 @@ final class ErrorHandler
 
     /**
      * @var callable|null The previous exception handler, if any
+     *
+     * @psalm-var null|callable(\Throwable): void
      */
     private $previousExceptionHandler;
 
@@ -238,6 +238,12 @@ final class ErrorHandler
         self::$handlerInstance->isExceptionHandlerRegistered = true;
         self::$handlerInstance->previousExceptionHandler = set_exception_handler(\Closure::fromCallable([self::$handlerInstance, 'handleException']));
 
+        // Ensure that if there is no previous handler then we at least print
+        // the exception to the screen
+        if (null === self::$handlerInstance->previousExceptionHandler) {
+            self::$handlerInstance->previousExceptionHandler = [self::$handlerInstance, 'printException'];
+        }
+
         return self::$handlerInstance;
     }
 
@@ -353,8 +359,8 @@ final class ErrorHandler
     }
 
     /**
-     * Handles errors by capturing them through the Raven client according to
-     * the configured bit field.
+     * Handles errors by capturing them through the client according to the
+     * configured bit field.
      *
      * @param int        $level      The level of the error raised, represented by
      *                               one of the E_* constants
@@ -390,8 +396,8 @@ final class ErrorHandler
     }
 
     /**
-     * Handles fatal errors by capturing them through the Raven client. This
-     * method is used as callback of a shutdown function.
+     * Handles fatal errors by capturing them through the client. This method
+     * is used as callback of a shutdown function.
      *
      * @param array|null $error The error details as returned by error_get_last()
      */
@@ -404,6 +410,7 @@ final class ErrorHandler
         }
 
         self::$reservedMemory = null;
+        $shouldExit = false;
 
         if (null === $error) {
             $error = error_get_last();
@@ -424,12 +431,21 @@ final class ErrorHandler
 //        }
 
         if (!empty($error) && $error['type'] & (E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING)) {
+            $shouldExit = true;
             $errorAsException = new FatalErrorException(self::ERROR_LEVELS_DESCRIPTION[$error['type']] . ': ' . $error['message'], 0, $error['type'], $error['file'], $error['line']);
 
             $this->exceptionReflection->setValue($errorAsException, []);
 
             $this->invokeListeners($this->errorListeners, $errorAsException);
             $this->invokeListeners($this->fatalErrorListeners, $errorAsException);
+        }
+
+        if ($shouldExit) {
+            // Force the process to exit with code 255 to respect what would
+            // happen natively if no handler was registered
+            register_shutdown_function('register_shutdown_function', static function (): void {
+                exit(255);
+            });
         }
     }
 
@@ -447,10 +463,11 @@ final class ErrorHandler
 
         $previousExceptionHandlerException = $exception;
 
-        // Unset the previous exception handler to prevent infinite loop in case
-        // we need to handle an exception thrown from it
+        // Sets the previous handler so that the exception is printed on the
+        // screen the next time this method runs. This also breaks the infinite
+        // loop that would happen if the previous handler thrown a new exception
         $previousExceptionHandler = $this->previousExceptionHandler;
-        $this->previousExceptionHandler = null;
+        $this->previousExceptionHandler = [$this, 'printException'];
 
         try {
             if (null !== $previousExceptionHandler) {
@@ -465,8 +482,8 @@ final class ErrorHandler
         }
 
         // If the exception object instance is the same as the one catched from
-        // the previous exception handler, if any, give it back to the native
-        // PHP handler to prevent infinite circular loop
+        // the previous exception handler, if any, then we give it back to the
+        // native PHP handler to prevent infinite circular loop
         if ($exception === $previousExceptionHandlerException) {
             // Disable the fatal error handler or the error will be reported twice
             self::$reservedMemory = null;
@@ -518,5 +535,10 @@ final class ErrorHandler
                 // Do nothing as this should be as transparent as possible
             }
         }
+    }
+
+    private function printException(\Throwable $exception): void
+    {
+        echo sprintf("Fatal error: Uncaught %s\n", (string) $exception);
     }
 }

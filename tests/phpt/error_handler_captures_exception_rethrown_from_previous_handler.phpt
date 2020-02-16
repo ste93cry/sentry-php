@@ -1,5 +1,6 @@
 --TEST--
-Test that an exception thrown from the previous handler is captured
+Test that the exception being handled is captured only once even if it's
+rethrown from a previous exception handler
 --FILE--
 <?php
 
@@ -17,10 +18,10 @@ while (!file_exists($vendor . '/vendor')) {
 
 require $vendor . '/vendor/autoload.php';
 
-set_exception_handler(static function (): void {
+set_exception_handler(static function (\Throwable $exception): void {
     echo 'Custom exception handler called' . PHP_EOL;
 
-    throw new \Exception('foo bar baz');
+    throw $exception;
 });
 
 $errorHandler = ErrorHandler::registerOnceErrorHandler();
@@ -30,7 +31,7 @@ $errorHandler->addErrorHandlerListener(static function (): void {
 
 $errorHandler = ErrorHandler::registerOnceFatalErrorHandler();
 $errorHandler->addFatalErrorHandlerListener(static function (): void {
-    echo 'Fatal error listener called' . PHP_EOL;
+    echo 'Fatal error listener called (it should not have been)' . PHP_EOL;
 });
 
 $errorHandler = ErrorHandler::registerOnceExceptionHandler();
@@ -43,7 +44,7 @@ throw new \Exception('foo bar');
 --EXPECTF--
 Exception listener called
 Custom exception handler called
-Exception listener called
-Fatal error: Uncaught Exception: foo bar baz in %s:%d
+
+Fatal error: Uncaught Exception: foo bar in %s:%d
 Stack trace:
 %a
