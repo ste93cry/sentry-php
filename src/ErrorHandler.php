@@ -28,13 +28,6 @@ final class ErrorHandler
     private static $handlerInstance;
 
     /**
-     * This property is used to avoid double-reporting uncaught exceptions.
-     *
-     * @var \Throwable|null The last exception captured by the exception handler
-     */
-    private static $lastCapturedException;
-
-    /**
      * @var callable[] List of listeners that will act on each captured error
      *
      * @psalm-var (callable(\ErrorException): void)[]
@@ -238,12 +231,6 @@ final class ErrorHandler
         self::$handlerInstance->isExceptionHandlerRegistered = true;
         self::$handlerInstance->previousExceptionHandler = set_exception_handler(\Closure::fromCallable([self::$handlerInstance, 'handleException']));
 
-        // Ensure that if there is no previous handler then we at least print
-        // the exception to the screen
-        if (null === self::$handlerInstance->previousExceptionHandler) {
-            self::$handlerInstance->previousExceptionHandler = [self::$handlerInstance, 'printException'];
-        }
-
         return self::$handlerInstance;
     }
 
@@ -398,10 +385,8 @@ final class ErrorHandler
     /**
      * Handles fatal errors by capturing them through the client. This method
      * is used as callback of a shutdown function.
-     *
-     * @param array|null $error The error details as returned by error_get_last()
      */
-    private function handleFatalError(array $error = null): void
+    private function handleFatalError(): void
     {
         // If there is not enough memory that can be used to handle the error
         // do nothing
@@ -410,42 +395,15 @@ final class ErrorHandler
         }
 
         self::$reservedMemory = null;
-        $shouldExit = false;
-
-        if (null === $error) {
-            $error = error_get_last();
-        }
-
-//        if (empty($error)) {
-//            return;
-//        }
-//
-//        if (
-//            self::$lastCapturedException
-//            && self::$lastCapturedException->getFile() === $error['file']
-//            && self::$lastCapturedException->getLine() === $error['line']
-//            && false !== strpos($error['message'], 'Uncaught ')
-//            && false !== strpos($error['message'], self::$lastCapturedException->getMessage())
-//        ) {
-//            return;
-//        }
+        $error = error_get_last();
 
         if (!empty($error) && $error['type'] & (E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING)) {
-            $shouldExit = true;
             $errorAsException = new FatalErrorException(self::ERROR_LEVELS_DESCRIPTION[$error['type']] . ': ' . $error['message'], 0, $error['type'], $error['file'], $error['line']);
 
             $this->exceptionReflection->setValue($errorAsException, []);
 
             $this->invokeListeners($this->errorListeners, $errorAsException);
             $this->invokeListeners($this->fatalErrorListeners, $errorAsException);
-        }
-
-        if ($shouldExit) {
-            // Force the process to exit with code 255 to respect what would
-            // happen natively if no handler was registered
-            register_shutdown_function('register_shutdown_function', static function (): void {
-                exit(255);
-            });
         }
     }
 
@@ -467,7 +425,7 @@ final class ErrorHandler
         // screen the next time this method runs. This also breaks the infinite
         // loop that would happen if the previous handler thrown a new exception
         $previousExceptionHandler = $this->previousExceptionHandler;
-        $this->previousExceptionHandler = [$this, 'printException'];
+        $this->previousExceptionHandler = null;
 
         try {
             if (null !== $previousExceptionHandler) {
@@ -535,10 +493,5 @@ final class ErrorHandler
                 // Do nothing as this should be as transparent as possible
             }
         }
-    }
-
-    private function printException(\Throwable $exception): void
-    {
-        echo sprintf("Fatal error: Uncaught %s\n", (string) $exception);
     }
 }

@@ -30,7 +30,7 @@ $errorHandler->addErrorHandlerListener(static function (): void {
 
 $errorHandler = ErrorHandler::registerOnceFatalErrorHandler();
 $errorHandler->addFatalErrorHandlerListener(static function (): void {
-    echo 'Fatal error listener called' . PHP_EOL;
+    echo 'Fatal error listener called (it should not have been)' . PHP_EOL;
 });
 
 $errorHandler = ErrorHandler::registerOnceExceptionHandler();
@@ -44,6 +44,7 @@ throw new \Exception('foo bar');
 Exception listener called
 Custom exception handler called
 Exception listener called
+
 Fatal error: Uncaught Exception: foo bar baz in %s:%d
 Stack trace:
 %a
