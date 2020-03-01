@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Sentry\Tests;
 
-use Sentry\Tests\Transport\StubTransportFactory;
+use Sentry\ErrorHandler;
 
 ini_set('memory_limit', '20M');
 
@@ -19,10 +19,24 @@ while (!file_exists($vendor . '/vendor')) {
 
 require $vendor . '/vendor/autoload.php';
 
-StubTransportFactory::registerClientWithStubTransport();
+$errorHandler = ErrorHandler::registerOnceErrorHandler();
+$errorHandler->addErrorHandlerListener(static function (): void {
+    echo 'Error listener called' . PHP_EOL;
+});
+
+$errorHandler = ErrorHandler::registerOnceFatalErrorHandler();
+$errorHandler->addFatalErrorHandlerListener(static function (): void {
+    echo 'Fatal error listener called' . PHP_EOL;
+});
+
+$errorHandler = ErrorHandler::registerOnceExceptionHandler();
+$errorHandler->addExceptionHandlerListener(static function (): void {
+    echo 'Exception listener called' . PHP_EOL;
+});
 
 $foo = str_repeat('x', 1024 * 1024 * 30);
 ?>
 --EXPECTF--
 Fatal error: Allowed memory size of %d bytes exhausted (tried to allocate %d bytes) in %s on line %d
-Event sent: Error: Allowed memory size of %d bytes exhausted (tried to allocate %d bytes)
+Error listener called
+Fatal error listener called

@@ -81,6 +81,8 @@ final class ErrorHandler
      */
     private $isFatalErrorHandlerRegistered = false;
 
+    private $shouldInvokeListeners = true;
+
     /**
      * @var string|null A portion of pre-allocated memory data that will be reclaimed
      *                  in case a fatal error occurs to handle it
@@ -231,6 +233,10 @@ final class ErrorHandler
         self::$handlerInstance->isExceptionHandlerRegistered = true;
         self::$handlerInstance->previousExceptionHandler = set_exception_handler(\Closure::fromCallable([self::$handlerInstance, 'handleException']));
 
+        if (self::$handlerInstance->previousExceptionHandler === null) {
+            self::$handlerInstance->previousExceptionHandler = [self::$handlerInstance, 'printException'];
+        }
+
         return self::$handlerInstance;
     }
 
@@ -376,7 +382,7 @@ final class ErrorHandler
         $this->invokeListeners($this->errorListeners, $errorAsException);
 
         if (null !== $this->previousErrorHandler) {
-            return false !== \call_user_func($this->previousErrorHandler, $level, $message, $file, $line, $errcontext);
+            return false !== ($this->previousErrorHandler)($level, $message, $file, $line, $errcontext);
         }
 
         return false;
@@ -417,7 +423,9 @@ final class ErrorHandler
      */
     private function handleException(\Throwable $exception): void
     {
-        $this->invokeListeners($this->exceptionListeners, $exception);
+        if ($this->shouldInvokeListeners) {
+            $this->invokeListeners($this->exceptionListeners, $exception);
+        }
 
         $previousExceptionHandlerException = $exception;
 
@@ -425,7 +433,11 @@ final class ErrorHandler
         // screen the next time this method runs. This also breaks the infinite
         // loop that would happen if the previous handler thrown a new exception
         $previousExceptionHandler = $this->previousExceptionHandler;
-        $this->previousExceptionHandler = null;
+        $this->previousExceptionHandler = [$this, 'printException'];
+
+        if (null === $previousExceptionHandler || $previousExceptionHandler === $this->previousExceptionHandler) {
+            $this->previousExceptionHandler = null;
+        }
 
         try {
             if (null !== $previousExceptionHandler) {
@@ -434,22 +446,34 @@ final class ErrorHandler
                 return;
             }
         } catch (\Throwable $previousExceptionHandlerException) {
-            // Do nothing, we just need to set the $previousExceptionHandlerException
-            // variable to the exception we just catched to compare it later
-            // with the original object instance
+            // This `catch` statement seems to be useless, but in reality its purpose
+            // is to set the $previousExceptionHandlerException variable to the exception
+            // we just catched
         }
 
-        // If the exception object instance is the same as the one catched from
-        // the previous exception handler, if any, then we give it back to the
+        // If the instance of the exception we're handling is the same as the one
+        // catched from the previous exception handler then we give it back to the
         // native PHP handler to prevent infinite circular loop
-        if ($exception === $previousExceptionHandlerException) {
+        if ($exception === $previousExceptionHandlerException && null === $this->previousExceptionHandler) {
             // Disable the fatal error handler or the error will be reported twice
             self::$reservedMemory = null;
 
             throw $exception;
         }
 
-        $this->handleException($previousExceptionHandlerException);
+        $shouldInvokeListeners = $this->shouldInvokeListeners;
+        $this->shouldInvokeListeners = $exception === $previousExceptionHandlerException ? false : $this->shouldInvokeListeners;
+
+        try {
+            $this->handleException($previousExceptionHandlerException);
+        } finally {
+            $this->shouldInvokeListeners = $shouldInvokeListeners;
+        }
+    }
+
+    private function printException(\Throwable $exception): void
+    {
+        echo 'Fatal error: Uncaught '. $exception . PHP_EOL;
     }
 
     /**
@@ -488,7 +512,7 @@ final class ErrorHandler
     {
         foreach ($listeners as $listener) {
             try {
-                \call_user_func($listener, $throwable);
+                $listener($throwable);
             } catch (\Throwable $exception) {
                 // Do nothing as this should be as transparent as possible
             }

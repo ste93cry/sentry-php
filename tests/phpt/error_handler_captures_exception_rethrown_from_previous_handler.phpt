@@ -24,11 +24,6 @@ set_exception_handler(static function (\Throwable $exception): void {
     throw $exception;
 });
 
-$errorHandler = ErrorHandler::registerOnceErrorHandler();
-$errorHandler->addErrorHandlerListener(static function (): void {
-    echo 'Error listener called (it should not have been)' . PHP_EOL;
-});
-
 $errorHandler = ErrorHandler::registerOnceFatalErrorHandler();
 $errorHandler->addFatalErrorHandlerListener(static function (): void {
     echo 'Fatal error listener called (it should not have been)' . PHP_EOL;
@@ -44,7 +39,6 @@ throw new \Exception('foo bar');
 --EXPECTF--
 Exception listener called
 Custom exception handler called
-
 Fatal error: Uncaught Exception: foo bar in %s:%d
 Stack trace:
 %a

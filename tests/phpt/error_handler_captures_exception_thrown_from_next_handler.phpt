@@ -1,6 +1,5 @@
 --TEST--
-Test that the handler captures the thrown exception when no previous handler is set
-and that the details of the exception are printed on the screen
+
 --FILE--
 <?php
 
@@ -18,14 +17,9 @@ while (!file_exists($vendor . '/vendor')) {
 
 require $vendor . '/vendor/autoload.php';
 
-$errorHandler = ErrorHandler::registerOnceErrorHandler();
-$errorHandler->addErrorHandlerListener(static function (): void {
-    echo 'Error listener called (it should not have been)' . PHP_EOL;
-});
-
 $errorHandler = ErrorHandler::registerOnceFatalErrorHandler();
 $errorHandler->addFatalErrorHandlerListener(static function (): void {
-    echo 'Fatal error listener called (it should not have been)' . PHP_EOL;
+    echo 'Fatal error listener called' . PHP_EOL;
 });
 
 $errorHandler = ErrorHandler::registerOnceExceptionHandler();
@@ -33,10 +27,24 @@ $errorHandler->addExceptionHandlerListener(static function (): void {
     echo 'Exception listener called' . PHP_EOL;
 });
 
+$previousExceptionHandler = set_exception_handler(static function (\Throwable $exception) use (&$previousExceptionHandler): void {
+    echo 'Custom exception handler called' . PHP_EOL;
+
+    $previousExceptionHandler($exception);
+
+    throw new \Exception('foo bar baz');
+});
+
 throw new \Exception('foo bar');
 ?>
 --EXPECTF--
+Custom exception handler called
 Exception listener called
 Fatal error: Uncaught Exception: foo bar in %s:%d
 Stack trace:
 %a
+
+Fatal error: Uncaught Exception: foo bar baz in %s:%d
+Stack trace:
+%a
+Fatal error listener called

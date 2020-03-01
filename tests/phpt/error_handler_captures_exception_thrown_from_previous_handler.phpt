@@ -44,7 +44,6 @@ throw new \Exception('foo bar');
 Exception listener called
 Custom exception handler called
 Exception listener called
-
 Fatal error: Uncaught Exception: foo bar baz in %s:%d
 Stack trace:
 %a
