@@ -63,6 +63,7 @@ final class EventTest extends TestCase
         $event = new Event();
         $event->setContext('foo', ['foo' => 'bar']);
         $event->setContext('bar', ['bar' => 'foo']);
+        $event->setContext('baz', []);
         $event->setContext('runtime', ['baz' => 'baz']);
 
         $expected = [
@@ -90,10 +91,11 @@ final class EventTest extends TestCase
                 'bar' => [
                     'bar' => 'foo',
                 ],
+                'baz' => (object) [],
             ],
         ];
 
-        $this->assertSame($expected, $event->toArray());
+        $this->assertEquals($expected, $event->toArray());
     }
 
     /**

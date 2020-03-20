@@ -581,7 +581,7 @@ final class Event implements \JsonSerializable
      *     extra?: mixed[],
      *     tags?: mixed[],
      *     user?: mixed[],
-     *     contexts?: mixed[],
+     *     contexts?: array<string, \stdClass|array<string, mixed>>,
      *     breadcrumbs?: array{
      *         values: Breadcrumb[]
      *     },
@@ -664,7 +664,12 @@ final class Event implements \JsonSerializable
         }
 
         if (!empty($this->contexts)) {
-            $data['contexts'] = array_merge($data['contexts'] ?? [], $this->contexts);
+            $data['contexts'] = array_map(
+                static function (array $contextData) {
+                    return (empty($contextData)) ? (object) $contextData : $contextData;
+                },
+                array_merge($data['contexts'] ?? [], $this->contexts)
+            );
         }
 
         if (!empty($this->breadcrumbs)) {
