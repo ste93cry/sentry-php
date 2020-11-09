@@ -113,6 +113,10 @@ final class FrameContextifierIntegration implements IntegrationInterface
             'post_context' => [],
         ];
 
+        if (!is_readable($filePath) || !file_exists($filePath)) {
+            return $frame;
+        }
+
         $target = max(0, ($lineNumber - ($maxContextLines + 1)));
         $currentLineNumber = $target + 1;
 

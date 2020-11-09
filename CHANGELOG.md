@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix reading of unreadable or non-existent file in the `FrameContextifierIntegration` integration (#1131)
+
 ## 3.0.4 (2020-11-6)
 
 - Fix stacktrace missing from payload for non-exception events (#1123)
